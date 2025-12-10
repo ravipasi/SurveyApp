@@ -1,0 +1,462 @@
+@model List<SurveyApp.Models.SurveyModel>
+@{
+    ViewData["Title"] = "Survey List";
+}
+
+@section VendorStyles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+}
+
+@section PageStyles {
+    <style>
+        /* Prevent horizontal overflow */
+        body {
+            overflow-x: hidden !important;
+        }
+
+        /* Mobile full-screen card */
+        @@media (max-width: 767.98px) {
+            .full-screen-card {
+                min-height: 100vh;
+                border-radius: 0 !important;
+                margin: 0 !important;
+            }
+        }
+    </style>
+}
+
+<div class="container-fluid p-0 m-0">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="card shadow mt-0 rounded-0 full-screen-card">
+                <div class="card-header bg-purple py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="text-white fs-4 mb-0">
+                            All Surveys
+                            @if (ViewBag.IsFiltered == true)
+                            {
+                                <span class="badge text-purple ms-2">
+                                    @ViewBag.FilteredCount of @ViewBag.TotalCount
+                                </span>
+                            }
+                        </h6>
+                        <a asp-controller="SurveyCreation" asp-action="Create"
+                            class="btn btn-outline-success text-white border-0">
+                            <i class="bi bi-plus-circle"></i>
+                            <span class="d-none d-md-inline ms-2">Create New Survey</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (TempData["ResultMessage"] != null &&
+                                        !string.IsNullOrWhiteSpace(TempData["ResultMessage"]?.ToString()))
+                    {
+                        <div class="alert alert-@TempData["ResultType"] alert-dismissible fade show" role="alert">
+                            @Html.Raw(TempData["ResultMessage"])
+                            <button type="button" class="btn-close btn-sm align-top" data-bs-dismiss="alert"
+                                aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <!-- Filter Section -->
+                    <div class="card mb-2 border-1 shadow-sm"
+                        style="border-radius: 10px; overflow: hidden; margin-top: 0.5rem;">
+                        <div class="card-body" style="background-color: #f8f9fa; padding: 1.5rem;">
+                            <form asp-action="Index" method="get" id="filterForm">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <label class="form-label fw-semibold small text-secondary mb-2">
+                                            <i class="bi bi-funnel me-1 text-primary"></i>Status
+                                        </label>
+                                        <select name="status" class="form-select shadow-sm" id="statusFilter"
+                                            style="border-radius: 8px; border: 1px solid #dee2e6;"
+                                            onchange="handleStatusChange(this)">
+                                            <option value="">All Statuses</option>
+                                            @if (ViewBag.StatusOptions != null)
+                                            {
+                                                foreach (var status in ViewBag.StatusOptions)
+                                                {
+                                                    <option value="@status" selected="@(ViewBag.CurrentStatus == status)">
+                                                        @status
+                                                    </option>
+                                                }
+                                            }
+                                            <option value="Missed Deadline" selected="@(ViewBag.CurrentMissed == true)">
+                                                Missed Deadline (@ViewBag.MissedDeadlineCount)
+                                            </option>
+                                        </select>
+                                        <input type="hidden" name="missed" id="missedInput"
+                                            value="@(ViewBag.CurrentMissed == true ? "true" : "")">
+                                    </div>
+
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <label class="form-label fw-semibold small text-secondary mb-2">
+                                            <i class="bi bi-map me-1 text-success"></i>Region
+                                        </label>
+                                        <select name="region" class="form-select shadow-sm" id="regionFilter"
+                                            style="border-radius: 8px; border: 1px solid #dee2e6;">
+                                            <option value="">All Regions</option>
+                                            @if (ViewBag.RegionOptions != null)
+                                            {
+                                                foreach (var region in ViewBag.RegionOptions)
+                                                {
+                                                    <option value="@region" selected="@(ViewBag.CurrentRegion == region)">
+                                                        @region
+                                                    </option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <label class="form-label fw-semibold small text-secondary mb-2">
+                                            <i class="bi bi-building me-1 text-warning"></i>Implementation Type
+                                        </label>
+                                        <select name="type" class="form-select shadow-sm" id="typeFilter"
+                                            style="border-radius: 8px; border: 1px solid #dee2e6;">
+                                            <option value="">All Types</option>
+                                            @if (ViewBag.TypeOptions != null)
+                                            {
+                                                foreach (var type in ViewBag.TypeOptions)
+                                                {
+                                                    <option value="@type" selected="@(ViewBag.CurrentType == type)">
+                                                        @type
+                                                    </option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <label class="form-label fw-semibold small text-secondary mb-2">
+                                            <i class="bi bi-search me-1 text-info"></i>Search
+                                        </label>
+                                        <input type="text" name="search" class="form-control shadow-sm"
+                                            placeholder="Search surveys..." value="@ViewBag.CurrentSearch"
+                                            id="searchFilter" style="border-radius: 8px; border: 1px solid #dee2e6;">
+                                    </div>
+                                </div>
+
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <div class="d-flex gap-2 flex-wrap">
+                                            <button type="submit" class="btn btn-purple shadow-sm px-4"
+                                                style="border-radius: 8px;">
+                                                <i class="bi bi-funnel-fill me-2"></i>Apply Filters
+                                            </button>
+                                            @if (ViewBag.IsFiltered == true)
+                                            {
+                                                <a asp-action="Index" class="btn btn-outline-secondary shadow-sm px-4"
+                                                    style="border-radius: 8px;">
+                                                    <i class="bi bi-x-circle me-2"></i>Clear All Filters
+                                                </a>
+                                            }
+                                            <div class="ms-auto d-flex align-items-center">
+                                                <span class="badge bg-purple text-white border px-2 px-md-3 py-2"
+                                                    style="border-radius: 8px; font-size: 0.875rem;">
+                                                    <i class="bi bi-list-check me-1"></i>
+                                                    <strong>@ViewBag.FilteredCount</strong> surveys
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    @if (ViewBag.IsFiltered == true)
+                    {
+                        <div class="alert alert-info alert-dismissible fade show d-flex align-items-start shadow-sm mb-3"
+                            role="alert" style="border-radius: 10px; border-left: 4px solid #0dcaf0;">
+                            <i class="bi bi-info-circle-fill me-3 mt-1" style="font-size: 1.25rem;"></i>
+                            <div class="flex-grow-1">
+                                <strong class="d-block mb-2">Active Filters:</strong>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (!string.IsNullOrEmpty(ViewBag.CurrentStatus))
+                                    {
+                                        <span class="badge bg-primary px-3 py-2" style="border-radius: 20px;">
+                                            <i class="bi bi-funnel-fill me-1"></i>Status: @ViewBag.CurrentStatus
+                                        </span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(ViewBag.CurrentRegion))
+                                    {
+                                        <span class="badge bg-success px-3 py-2" style="border-radius: 20px;">
+                                            <i class="bi bi-map-fill me-1"></i>Region: @ViewBag.CurrentRegion
+                                        </span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(ViewBag.CurrentType))
+                                    {
+                                        <span class="badge bg-warning text-dark px-3 py-2" style="border-radius: 20px;">
+                                            <i class="bi bi-building me-1"></i>Type: @ViewBag.CurrentType
+                                        </span>
+                                    }
+                                    @if (ViewBag.CurrentMissed == true)
+                                    {
+                                        <span class="badge bg-danger px-3 py-2" style="border-radius: 20px;">
+                                            <i class="bi bi-calendar-x me-1"></i>Missed Deadline
+                                        </span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                                    {
+                                        <span class="badge bg-info text-dark px-3 py-2" style="border-radius: 20px;">
+                                            <i class="bi bi-search me-1"></i>Search: "@ViewBag.CurrentSearch"
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (Model != null && Model.Count > 0)
+                    {
+                        <div class="row g-3 mt-2">
+                            @foreach (var survey in Model)
+                            {
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="card h-100 shadow-sm border-0 hover-lift">
+                                        <!-- Compact header -->
+                                        <div class="card-header border-0 d-flex justify-content-between align-items-center py-2"
+                                            style="background-color: rgb(159 139 233 / 78%);">
+                                            <span class="badge bg-purple">ID: @survey.SurveyId</span>
+                                            @{
+                                                var statusColor = survey.SurveyStatus switch
+                                                {
+                                                    "Created" => "primary",
+                                                    "Assigned" => "info",
+                                                    "In Progress" => "warning",
+                                                    "Completed" => "success",
+                                                    "Verified" => "success",
+                                                    "Pending" => "secondary",
+                                                    "Cancelled" => "danger",
+                                                    _ => "secondary"
+                                                };
+                                            }
+                                            <span class="badge bg-@statusColor">
+                                                @survey.SurveyStatus
+                                            </span>
+                                        </div>
+
+
+                                        <div class="d-flex flex-row flex-md-column h-100">
+                                            <!-- Compact body -->
+                                            <div class="card-body flex-grow-1 py-2">
+                                                @if (!string.IsNullOrEmpty(survey.ClientName))
+                                                {
+                                                    <div class="mb-1">
+                                                        <span class="badge bg-info text-dark">
+                                                            <i class="bi bi-building-fill me-1"></i>@survey.ClientName
+                                                        </span>
+                                                    </div>
+                                                }
+
+                                                <h5 class="card-title text-dark fw-semibold mb-2">
+                                                    <i class="bi bi-clipboard-data text-primary me-2"></i>@survey.SurveyName
+                                                </h5>
+
+                                                <div class="mb-1">
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-building me-1"></i><strong>Type:</strong>
+                                                    </small>
+                                                    <span class="text-dark">@survey.ImplementationType</span>
+                                                </div>
+
+                                                <div class="mb-1">
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-calendar-event me-1"></i><strong>Date:</strong>
+                                                    </small>
+                                                    <span class="text-dark">
+                                                        @(survey.SurveyDate?.ToString("dd-MMM-yyyy") ?? "-")
+                                                    </span>
+                                                </div>
+
+                                                <div class="mb-1">
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-people me-1"></i><strong>Team Leader:</strong>
+                                                    </small>
+                                                    <span class="text-dark">@survey.SurveyTeamName</span>
+                                                </div>
+
+                                                <div class="mb-1">
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-geo-alt me-1"></i><strong>Location:</strong>
+                                                    </small>
+                                                    <span class="text-dark">@survey.LocationSiteName,
+                                                        @survey.CityDistrict</span>
+                                                </div>
+
+                                                <div class="mb-1">
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-map me-1"></i><strong>Region:</strong>
+                                                    </small>
+                                                    <span class="text-dark">@(survey.RegionName ?? "-")</span>
+                                                </div>
+
+                                                @{
+                                                    var hasAssignments = ViewData[$"HasAssignments_{survey.SurveyId}"] as bool? ??
+                                                    false;
+                                                    var hasValidDueDate = survey.DueDate.HasValue && survey.DueDate.Value.Year > 1;
+                                                }
+                                                @if (hasAssignments && hasValidDueDate)
+                                                {
+                                                    var isOverdue = survey.DueDate.Value < DateTime.Now && survey.SurveyStatus !=
+                                                    "Completed";
+                                                    <div class="mb-1">
+                                                        <small class="text-muted d-block">
+                                                            <i class="bi bi-calendar-check me-1"></i><strong>Due Date:</strong>
+                                                        </small>
+                                                        <span class="badge @(isOverdue ? "bg-danger" : "bg-info")">
+                                                            @survey.DueDate.Value.ToString("dd-MMM-yyyy")
+                                                            @if (isOverdue)
+                                                            {
+                                                                <i class="bi bi-exclamation-triangle ms-1"></i>
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <!-- Compact footer -->
+                                            <div
+                                                class="card-footer bg-white border-0 d-flex flex-column flex-md-row gap-2 
+                                                                                                        justify-content-center align-items-stretch py-2 px-2 mt-auto">
+                                                @{
+                                                    var isSubmitted = ViewData[$"IsSubmitted_{survey.SurveyId}"] as bool? ?? false;
+                                                    var isLocked = ViewData[$"IsLocked_{survey.SurveyId}"] as bool? ?? false;
+                                                    var canCreateSurvey = ViewBag.CanCreateSurvey as bool? ?? false;
+                                                }
+
+                                                @* Edit *@
+                                                @if (isSubmitted)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-secondary" disabled
+                                                        title="Cannot edit submitted survey">
+                                                        <i class="bi bi-pencil me-1"></i><span
+                                                            class="d-none d-sm-inline">Edit</span>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-warning btn-edit"
+                                                        data-survey-id="@survey.SurveyId" title="Edit Survey"
+                                                        onclick="checkAndEdit(@survey.SurveyId)">
+                                                        <i class="bi bi-pencil me-1"></i><span
+                                                            class="d-none d-sm-inline">Edit</span>
+                                                    </button>
+                                                }
+
+                                                @* Team *@
+                                                @if (canCreateSurvey)
+                                                {
+                                                    if (isSubmitted)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-secondary" disabled
+                                                            title="Cannot modify team for submitted survey">
+                                                            <i class="bi bi-people-fill me-1"></i><span
+                                                                class="d-none d-sm-inline">Team</span>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <a asp-controller="SurveyCreation" asp-action="SurveyAssignment"
+                                                            asp-route-surveyId="@survey.SurveyId"
+                                                            asp-route-SurveyName="@survey.SurveyName" class="btn btn-sm btn-primary"
+                                                            title="Assign Team">
+                                                            <i class="bi bi-people-fill me-1"></i><span
+                                                                class="d-none d-sm-inline">Team</span>
+                                                        </a>
+                                                    }
+                                                }
+
+                                                @* Locations *@
+                                                @if (isLocked)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-info"
+                                                        data-survey-id="@survey.SurveyId" title="Unlock to edit locations"
+                                                        onclick="confirmUnlockSurvey(@survey.SurveyId, '@survey.SurveyName')">
+                                                        <i class="bi bi-geo-alt-fill me-1"></i><span
+                                                            class="d-none d-sm-inline">Locations</span>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <a asp-controller="SurveyCreation" asp-action="SurveyLocation"
+                                                        asp-route-surveyId="@survey.SurveyId"
+                                                        asp-route-SurveyName="@survey.SurveyName" class="btn btn-sm btn-info"
+                                                        title="View Locations">
+                                                        <i class="bi bi-geo-alt-fill me-1"></i><span
+                                                            class="d-none d-sm-inline">Locations</span>
+                                                    </a>
+                                                }
+
+                                                @* Details *@
+                                                <button type="button" class="btn btn-sm btn-success" title="View Details"
+                                                    onclick="openSurveyDetailsModal(@survey.SurveyId)">
+                                                    <i class="bi bi-file-earmark-spreadsheet me-1"></i><span
+                                                        class="d-none d-sm-inline">Details</span>
+                                                </button>
+
+                                                @* Submit *@
+                                                @if (isSubmitted)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-secondary" disabled
+                                                        title="Survey already submitted">
+                                                        <i class="bi bi-check2-circle me-1"></i><span
+                                                            class="d-none d-sm-inline">Submitted</span>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-purple btn-submit-survey"
+                                                        data-survey-id="@survey.SurveyId" title="Submit Survey"
+                                                        onclick="submitSurvey(@survey.SurveyId, '@survey.SurveyName')">
+                                                        <i class="bi bi-check2-circle me-1"></i><span
+                                                            class="d-none d-sm-inline">Submit</span>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                            <p class="text-muted fs-5">No surveys found. Click "Add New Survey" to create one.</p>
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="editModalContent"></div>
+    </div>
+</div>
+
+@section Scripts {
+    @Html.AntiForgeryToken()
+    <link rel="stylesheet" href="~/css/survey-index.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Define URLs for JavaScript to use
+        var surveyUrls = {
+            getSubmissionStatus: '@Url.Action("GetSubmissionStatus", "SurveyCreation")',
+            checkCompletion: '@Url.Action("CheckSurveyCompletion", "SurveyCreation")',
+            submitSurvey: '@Url.Action("SubmitSurvey", "SurveyCreation")',
+            edit: '@Url.Action("Edit", "SurveyCreation")',
+            viewDetails: '@Url.Action("ViewDetails", "SurveyCreation")',
+            deleteSurvey: '@Url.Action("Delete", "SurveyCreation")',
+            unlockSurvey: '@Url.Action("UnlockSurvey", "SurveyCreation")'
+        };
+    </script>
+    <script src="~/js/survey-index.js"></script>
+}

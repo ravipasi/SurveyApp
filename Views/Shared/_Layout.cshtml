@@ -1,0 +1,431 @@
+﻿@using Microsoft.AspNetCore.Http
+@using AnalyticaDocs.Repo
+@using AnalyticaDocs.Models
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IAdmin AdminRepository
+
+@{
+    // Get current user ID and their rights
+    var userIdStr = HttpContextAccessor.HttpContext?.Session.GetString("UserID");
+    var roleIdStr = HttpContextAccessor.HttpContext?.Session.GetString("RoleId");
+    var userId = !string.IsNullOrEmpty(userIdStr) ? int.Parse(userIdStr) : 0;
+    var roleId = !string.IsNullOrEmpty(roleIdStr) ? int.Parse(roleIdStr) : 0;
+
+    // Get user rights only if user is logged in
+    List<UsersRightsModel> userRights = new List<UsersRightsModel>();
+    if (userId > 0)
+    {
+        try
+        {
+            userRights = AdminRepository.GetUserRightsByUserId(userId);
+        }
+        catch (Exception)
+        {
+            // If error getting rights, assume user has no rights (will show no menus except for admin)
+            userRights = new List<UsersRightsModel>();
+        }
+    }
+
+    // Helper function to check if user has access to a right
+    bool HasRight(int rightsId)
+    {
+        // If user is not logged in, don't show menus
+        if (userId == 0) return false;
+
+        // If user is Admin (RoleId 101), show all menus
+        if (roleId == 101) return true;
+
+        // Dashboard and Survey are accessible to all logged-in users by default
+        // (users need to see their own surveys and dashboard)
+        if (rightsId == 102 || rightsId == 103) return true;
+
+        // For Admin and Reports, check if user has the right with IsView = true
+        return userRights.Any(r => r.RightsID == rightsId && r.IsView);
+    }
+
+    // Rights IDs (based on RightsMaster table)
+    const int RIGHTS_ADMIN = 101;
+    const int RIGHTS_DASHBOARD = 102;
+    const int RIGHTS_SURVEY = 103;
+    const int RIGHTS_REPORTS = 104;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Survey - @ViewData["Title"]</title>
+
+    @*  <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/MyTheame.styles.css" asp-append-version="true" /> *@
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="icon" type="image/x-icon" href="~/img/favicon/favicon.png" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="~/manifest.json" />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Survey App" />
+    <link rel="apple-touch-icon" href="~/img/icons/icon-192x192.png" />
+
+    <style>
+        .navbar-profile-picture {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #667eea;
+            margin-right: 0.5rem;
+        }
+
+        .navbar-profile-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.5rem;
+            border: 2px solid #667eea;
+        }
+
+        .navbar-profile-icon i {
+            color: white;
+            font-size: 20px;
+        }
+
+        .navbar-username-container {
+            display: flex;
+            align-items: center;
+        }
+
+        /* PWA Install Button */
+        @* #pwa-install-btn {
+            display: inline-block !important;
+            margin-top: 4px;
+        } *@
+
+        /* Sticky Date Time Banner */
+        .datetime-banner {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .datetime-banner i {
+            margin-right: 8px;
+        }
+
+        @@media (max-width: 768px) {
+            .datetime-banner {
+                font-size: 12px;
+                padding: 6px 15px;
+            }
+        }
+    </style>
+
+    <!-- Core Styles -->
+    @await Html.PartialAsync("Sections/_Styles")
+
+    <!-- Vendor Styles -->
+    @RenderSection("VendorStyles", required: false)
+
+    <!-- Page Styles -->
+    @RenderSection("PageStyles", required: false)
+
+    <!-- Include Scripts for customizer, helper, analytics, config -->
+    @await Html.PartialAsync("Sections/_ScriptsIncludes")
+
+
+</head>
+
+<body>
+    <!-- Sticky Date Time Banner -->
+    <div class="datetime-banner">
+        <i class="bi bi-calendar3"></i>
+        <span id="current-datetime"></span>
+    </div>
+
+    <header>
+        <nav
+            class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom nav-glow nav-shadow mb-6 p-1">
+            <div class="container-fluid">
+                <a class="navbar-brand p-0" asp-area="" asp-controller="Dashboard" asp-action="Index">
+                    <img src="~/img/icons/vlaccess_logo_short.png" alt="VL_Logo"
+                        style="height:50px; width:auto; display:block;">
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+
+                        <!-- Dashboard -->
+                        @if (HasRight(RIGHTS_DASHBOARD))
+                        {
+                            <li class="nav-item">
+                                <a asp-controller="Dashboard" asp-action="Index" class="nav-link text-dark">
+                                    Dashboards
+                                </a>
+                            </li>
+                        }
+
+                        <!-- Admin -->
+                        @if (HasRight(RIGHTS_ADMIN))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link text-dark dropdown-toggle" href="javascript:void(0)" id="navbardropAdmin"
+                                    data-bs-toggle="dropdown" aria-expanded="false"> Admin </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbardropAdmin">
+                                    <li><a class="dropdown-item" asp-controller="Users" asp-action="Index"><i
+                                                class="bi bi-people-fill me-2"></i>Users</a></li>
+                                    <li><a class="dropdown-item" asp-controller="UserRights" asp-action="Index"><i
+                                                class="bi bi-shield-lock-fill me-2"></i>User Rights</a></li>
+                                    <li><a class="dropdown-item" asp-controller="EmployeeMaster" asp-action="Index"><i
+                                                class="bi bi-person-vcard-fill me-2"></i>Employee Master</a></li>
+                                    <li><a class="dropdown-item" asp-controller="ClientMaster" asp-action="Index"><i
+                                                class="bi bi-building me-2"></i>Client Master</a></li>
+                                    <li><a class="dropdown-item" asp-controller="DevicesAdmin" asp-action="Manage"><i
+                                                class="bi bi-gear-fill me-2"></i>Manage Devices</a></li>
+                                </ul>
+                            </li>
+                        }
+
+                        <!-- Survey -->
+                        @if (HasRight(RIGHTS_SURVEY))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link text-dark dropdown-toggle" href="javascript:void(0)"
+                                    id="navbardropSurvey" data-bs-toggle="dropdown" aria-expanded="false"> Survey </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbardropSurvey">
+                                    <li><a class="dropdown-item" asp-controller="SurveyCreation" asp-action="Index"><i
+                                                class="bi bi-list-ul me-2"></i>All Surveys</a></li>
+                                    <li><a class="dropdown-item" asp-controller="SurveyCreation" asp-action="Create"><i
+                                                class="bi bi-plus-square-fill me-2"></i>New Survey</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <h6 class="dropdown-header">Submissions</h6>
+                                    </li>
+                                    <li><a class="dropdown-item" asp-controller="SurveySubmission"
+                                            asp-action="MySubmissions"><i class="bi bi-file-earmark-check me-2"></i>My
+                                            Submissions</a></li>
+                                    <li><a class="dropdown-item" asp-controller="SurveySubmission" asp-action="Index"><i
+                                                class="bi bi-clipboard-check me-2"></i>Pending Reviews</a></li>
+                                </ul>
+                            </li>
+                        }
+
+                        <!-- Reports -->
+                        @if (HasRight(RIGHTS_REPORTS))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link text-dark dropdown-toggle" href="javascript:void(0)"
+                                    id="navbardropReports" data-bs-toggle="dropdown" aria-expanded="false"> Reports </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbardropReports">
+                                    <li>
+                                        <h6 class="dropdown-header">Survey Reports</h6>
+                                    </li>
+                                    <li><a class="dropdown-item" asp-controller="SurveyReports" asp-action="Index"><i
+                                                class="bi bi-house-door-fill me-2"></i>Reports Home</a></li>
+                                    <li><a class="dropdown-item" asp-controller="SurveyReports"
+                                            asp-action="SummaryReport"><i class="bi bi-bar-chart-fill me-2"></i>Summary
+                                            Report</a></li>
+                                    <li><a class="dropdown-item" asp-controller="SurveyReports"
+                                            asp-action="ExportToExcel"><i
+                                                class="bi bi-file-earmark-excel-fill me-2"></i>Export to Excel</a></li>
+                                </ul>
+                            </li>
+                        }
+
+                        <!-- Help -->
+                        <li class="nav-item">
+                            <a asp-controller="Help" asp-action="Index" class="nav-link text-dark">
+                                <i class="bi bi-question-circle-fill me-1"></i>Help
+                            </a>
+                        </li>
+
+                    </ul>
+
+                    <!-- Right Side Menu -->
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            @if (HttpContextAccessor.HttpContext.Session.GetString("UserName") != null)
+                            {
+                                <span class="nav-link navbar-username-container">
+                                    @{
+                                        var profilePictureUrl =
+                                        HttpContextAccessor.HttpContext.Session.GetString("ProfilePictureUrl");
+                                    }
+                                    @if (!string.IsNullOrEmpty(profilePictureUrl))
+                                    {
+                                        <img src="@profilePictureUrl" alt="Profile" class="navbar-profile-picture" />
+                                    }
+                                    else
+                                    {
+                                        <span class="navbar-profile-icon">
+                                            <i class="bi bi-person-fill"></i>
+                                        </span>
+                                    }
+                                    <strong>@HttpContextAccessor.HttpContext.Session.GetString("UserName")</strong>
+                                </span>
+                            }
+                        </li>
+                        @* <li class="nav-item">
+                            <button id="pwa-install-btn" class="btn btn-sm btn-outline-primary me-2" style="display: none;">
+                                <i class="bi bi-download me-1"></i>Install App
+                            </button>
+                        </li> *@
+                        <li class="nav-item dropdown">
+                            <a class="nav-link text-dark dropdown-toggle" href="#" id="navbardropSettings"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-gear-fill me-2"></i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbardropSettings">
+                                <li><a class="dropdown-item text-primary" asp-controller="Profile" asp-action="Index"><i
+                                            class="bi bi-person-fill me-2"></i> Profile</a></li>
+                                <li><a class="dropdown-item text-primary" href="javascript:void(0)"
+                                        onclick="showPasswordModal();"><i class="bi bi-key-fill me-2"></i> Change
+                                        Password</a></li>
+                                @* <li id="pwa-install-menu-item" style="display: none;"><a class="dropdown-item text-success" href="javascript:void(0)" id="pwa-install-menu-link"><i class="bi bi-download me-2"></i> Install App</a></li> *@
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item text-info" asp-controller="Help" asp-action="Index"><i
+                                            class="bi bi-question-circle-fill me-2"></i> Help Center</a></li>
+                                <li><a class="dropdown-item text-info" asp-controller="Help" asp-action="QuickStart"><i
+                                            class="bi bi-rocket-takeoff-fill me-2"></i> Quick Start</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item text-danger" asp-controller="UserLogin"
+                                        asp-action="Index"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+    </header>
+    <div class="container-fluid py-4" style="background:#f7f8fa; min-height:90vh;">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- Core Scripts -->
+    @await Html.PartialAsync("Sections/_Scripts")
+
+    <!-- Vendor Scripts -->
+    @RenderSection("VendorScripts", required: false)
+
+
+
+    <!-- Main JS-->
+    <script src='~/js/main.js'></script>
+
+    <!-- Page Scripts-->
+    @RenderSection("PageScripts", required: false)
+
+    <!-- Place this tag in your head or just before your close body tag. -->
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+
+    @*  <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - MyTheame - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false) *@
+
+
+    <!-- Include DataTables CSS & JS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#searchDataTable').DataTable({ pageLength: 50 });
+        });
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('Service Worker registration failed:', err);
+                    });
+            });
+        }
+    </script>
+
+    <!-- PWA Install Handler -->
+    <script src="~/pwa-install.js"></script>
+
+    <!-- Date Time Update Script -->
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            };
+            const dateTimeString = now.toLocaleDateString('en-US', options);
+            document.getElementById('current-datetime').textContent = dateTimeString;
+        }
+
+        // Update immediately on load
+        updateDateTime();
+
+        // Update every second
+        setInterval(updateDateTime, 1000);
+    </script>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <partial name="_ValidationScriptsPartial" />
+    @await RenderSectionAsync("Scripts", required: false)
+    @await Html.PartialAsync("_ChangePasswordModal")
+    @await Html.PartialAsync("_BackConfirmModal")
+    @await Html.PartialAsync("_AccessDeniedModal")
+</body>
+
+</html>

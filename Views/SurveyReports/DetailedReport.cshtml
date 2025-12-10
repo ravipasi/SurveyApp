@@ -1,0 +1,669 @@
+@using System.Data
+@using System.Linq
+@{
+    ViewData["Title"] = "Survey Detailed Report";
+    var dtSurvey = ViewBag.SurveyDetails as DataTable;
+    var dtLocEmp = ViewBag.SurveyLocEmp as DataTable;
+    var dtItems = ViewBag.SurveyItems as DataTable;
+    long surveyId = ViewBag.SurveyId ?? 0;
+    DataRow? surveyRow = null;
+    if (dtSurvey != null && dtSurvey.Rows.Count > 0)
+    {
+        surveyRow = dtSurvey.Rows[0];
+    }
+}
+
+<style>
+    .loc-bg-1 {
+        background-color: #fff9e6;
+    }
+
+    /* light yellow */
+    .loc-bg-2 {
+        background-color: #e8f3ff;
+    }
+
+    /* light blue */
+    .total-existing-bg {
+        background-color: #fff9e6;
+    }
+
+    .total-required-bg {
+        background-color: #dff5dd;
+    }
+
+    /* light green */
+
+    /* Image Gallery Styles */
+    .image-gallery-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 15px;
+    }
+
+    .gallery-thumbnail {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: 2px solid transparent;
+    }
+
+    .gallery-thumbnail:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        border-color: #667eea;
+    }
+
+    .gallery-thumbnail.active {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    }
+
+    .main-image-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 400px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .main-image {
+        max-width: 100%;
+        max-height: 500px;
+        object-fit: contain;
+        border-radius: 8px;
+    }
+
+    .image-nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(102, 126, 234, 0.9);
+        border: none;
+        color: white;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: background 0.2s;
+    }
+
+    .image-nav-btn:hover {
+        background: rgba(118, 75, 162, 0.9);
+    }
+
+    .image-nav-btn.prev {
+        left: 10px;
+    }
+
+    .image-nav-btn.next {
+        right: 10px;
+    }
+
+    .image-counter {
+        text-align: center;
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-top: 10px;
+    }
+
+    .btn-gallery-icon {
+        padding: 0.15rem 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-gallery-icon:hover {
+        transform: scale(1.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .table thead th {
+        font-weight: 600;
+        vertical-align: middle;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3>Survey Detailed Report - @surveyId</h3>
+            <a asp-action="ExportDetailedReportNew" asp-route-surveyId="@surveyId" class="btn btn-success btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+            </a>
+        </div>
+    </div>
+    @if (surveyRow != null)
+    {
+        <div class="row">
+            <div class="col-12 col-md-6">
+                <div class="card mb-2">
+                    <div class="card-header bg-light py-3">
+                        <strong>Client Details</strong>
+                    </div>
+                    <div class="card-body py-4">
+                        <div class="col-12 mb-2">
+                            <strong>Client:</strong> @surveyRow["ClientName"]
+                        </div>
+                        <div class="col-12 mb-2">
+                            <strong>Contact Person:</strong> @surveyRow["ContactPerson"]
+                        </div>
+                        <div class="col-12 mb-2">
+                            <strong>Client Address:</strong> @surveyRow["ClintAddress"]
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card mb-2">
+                    <div class="card-header bg-light py-3">
+                        <strong>Survey Details</strong>
+                    </div>
+                    <div class="card-body py-4">
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <strong>Name:</strong> @surveyRow["SurveyName"]
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Type:</strong> @surveyRow["ImplementationType"]
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <strong>Start Date:</strong> @surveyRow["SurveyDate"]
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Site:</strong> @surveyRow["LocationSiteName"]
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <strong>Status:</strong> @surveyRow["SurveyStatus"]
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Submission Date:</strong> @surveyRow["SubmissionDate"]
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        {
+            var submission = ViewBag.Submission as SurveyApp.Models.SurveySubmissionModel;
+            if (submission != null)
+            {
+                var statusClass = submission.SubmissionStatus?.ToLower() switch
+                {
+                    "submitted" => "badge bg-warning text-dark",
+                    "approved" => "badge bg-success",
+                    "rejected" => "badge bg-danger",
+                    _ => "badge bg-secondary"
+                };
+                var statusIcon = submission.SubmissionStatus?.ToLower() switch
+                {
+                    "submitted" => "hourglass-split",
+                    "approved" => "check-circle",
+                    "rejected" => "x-circle",
+                    _ => "file-earmark"
+                };
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card mb-2">
+                            <div class="card-header bg-light py-3">
+                                <strong>Submission Information</strong>
+                            </div>
+                            <div class="card-body py-4">
+                                <div class="row mb-2">
+                                    <div class="col-md-4">
+                                        <strong>Submitted By:</strong>
+                                        <span class="text-primary">@(submission.SubmittedByName ?? "N/A")</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Reviewed By:</strong>
+                                        <span class="text-info">@(submission.ReviewedByName ?? "Not Reviewed")</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Review Status:</strong>
+                                        <span class="@statusClass">
+                                            <i class="bi bi-@statusIcon"></i> @(submission.SubmissionStatus ?? "Draft")
+                                        </span>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(submission.ReviewComments))
+                                {
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <strong>Review Comments:</strong>
+                                            <div class="alert alert-info mt-2 mb-0">
+                                                @submission.ReviewComments
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        <div class="row">
+            <div class="col-12 mt-2 mb-3">
+                <div class="card">
+                    <div class="card-header py-3">
+                        <strong>Scope Of Work:</strong>
+                    </div>
+                    <div class="card-body py-4">
+                        @surveyRow["ScopeOfWork"]
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <p class="text-muted text-center mb-0">No survey details found.</p>
+        </div>
+    }
+
+    <!-- CARD 2: Location cum Employee Details -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>Location &amp; Employee Details</strong>
+        </div>
+        <div class="card-body table-responsive">
+            @if (dtLocEmp != null && dtLocEmp.Rows.Count > 0)
+            {
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="py-1 px-2 fw-semibold text-center bg-primary" style="border-right:solid" colspan="4">
+                                Locations</th>
+                            <th class="py-1 px-2 fw-semibold text-center bg-warning" colspan="3">Team</th>
+                        </tr>
+                        <tr>
+                            <th class="py-1 px-2">ID</th>
+                            <th class="py-1 px-2">Location Name</th>
+                            <th class="py-1 px-2">Location Type</th>
+                            <th class="py-1 px-2" style="border-right:solid">Coordinates</th>
+                            <th class="py-1 px-2">Emp ID</th>
+                            <th class="py-1 px-2">Name</th>
+                            <th class="py-1 px-2">Mobile No</th>
+                            @* if you want Email too, add:
+                            <th class="py-1 px-2">Email</th>
+                            *@
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (DataRow tr in dtLocEmp.Rows)
+                        {
+                            <tr>
+                                <td class="py-1 px-2">@tr["LocID"]</td>
+                                <td class="py-1 px-2">@tr["LocName"]</td>
+                                <td class="py-1 px-2">@tr["LocationType"]</td>
+                                <td class="py-1 px-2" style="border-right:solid">@tr["Cordinate"]</td>
+                                <td class="py-1 px-2">@tr["EmpID"]</td>
+                                <td class="py-1 px-2">@tr["EmpName"]</td>
+                                <td class="py-1 px-2">@tr["MobileNo"]</td>
+                                @* <td class="py-1 px-2">@tr["Email"]</td> *@
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted text-center mb-0">
+                    No location / assigned Employee found.
+                </p>
+            }
+        </div>
+    </div>
+
+    <!-- CARD 3: Survey Items (Pivot) -->
+    <div class="card mb-3">
+        <div class="card-header py-2">
+            <strong>Survey Items Details</strong>
+        </div>
+        <div class="card-body table-responsive small ">
+            @if (dtItems != null && dtItems.Rows.Count > 0)
+            {
+                // Count only the original columns (excluding _Photos columns we added)
+                var originalColumns = dtItems.Columns.Cast<DataColumn>()
+                .Where(c => !c.ColumnName.EndsWith("_Photos"))
+                .ToList();
+                var originalColCount = originalColumns.Count;
+
+                // Original structure: 4 fixed + 2*locPairs + 2 totals + 1 remarks = 7 + 2*locPairs
+                int locationPairs = (originalColCount - 7) / 2;
+
+                int firstLocCol = 4; // zero-based index in DataTable
+                                     // Total columns are at fixed positions from the end of original columns
+                int totalExistingCol = 4 + (locationPairs * 2); // After all location pairs
+                int totalRequiredCol = totalExistingCol + 1;
+                int remarksCol = totalRequiredCol + 1;
+
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="py-0 px-2 fw-bold align-middle" rowspan="2">Item Code</th>
+                            <th class="py-0 px-2 fw-bold align-middle" rowspan="2">Type</th>
+                            <th class="py-0 px-2 fw-bold align-middle" rowspan="2">Item</th>
+                            <th class="py-0 px-2 fw-bold align-middle" rowspan="2">UOM</th>
+                            @for (int i = 0; i < locationPairs; i++)
+                            {
+                                var colName = dtItems.Columns[4 + (i * 2)].ColumnName;
+                                var loc = colName.Replace("Existing", "").Replace("Required", "").Trim();
+                                <th class="py-1 px-2 text-center fw-bold" colspan="3">@loc</th>
+                            }
+                            <th class="py-1 px-2 text-center fw-bold align-middle" colspan="2" rowspan="1">Total</th>
+                            <th class="py-0 px-2 fw-bold align-middle" rowspan="2">Remarks</th>
+                        </tr>
+                        <tr>
+                            @for (int i = 0; i < locationPairs; i++)
+                            {
+                                var locClass = (i % 2 == 0) ? "loc-bg-1" : "loc-bg-2";
+                                <th class="py-1 px-1 text-center @locClass">Existing</th>
+                                <th class="py-1 px-1 text-center @locClass">Required</th>
+                                <th class="py-1 px-1 text-center @locClass">Photo</th>
+                            }
+                            <th class="py-1 px-1 text-center total-existing-bg">Existing</th>
+                            <th class="py-1 px-1 text-center total-required-bg">Required</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (DataRow row in dtItems.Rows)
+                        {
+                            <tr>
+                                @for (int c = 0; c < 4; c++)
+                                {
+                                    <td class="py-1 px-1 text-start">@row[c]</td>
+                                }
+                                @for (int i = 0; i < locationPairs; i++)
+                                {
+                                    int existingColIndex = firstLocCol + (i * 2);
+                                    int requiredColIndex = existingColIndex + 1;
+                                    var locClass = (i % 2 == 0) ? "loc-bg-1" : "loc-bg-2";
+                                    <td class="py-1 px-1 text-center @locClass">@row[existingColIndex]</td>
+                                    <td class="py-1 px-1 text-center @locClass">@row[requiredColIndex]</td>
+                                    <td class="py-1 px-1 text-center @locClass">
+                                        @{
+                                            var colName = dtItems.Columns[firstLocCol + (i * 2)].ColumnName;
+                                            var locName = colName.Replace("Existing", "").Replace("Required", "").Trim();
+                                            string imageColumnName = $"{locName}_Photos";
+                                            var imageUrls = "";
+                                            if (dtItems.Columns.Contains(imageColumnName))
+                                            {
+                                                imageUrls = row[imageColumnName]?.ToString() ?? "";
+                                            }
+                                            var itemName = row[2]?.ToString() ?? "Item";
+                                        }
+                                        @if (!string.IsNullOrEmpty(imageUrls))
+                                        {
+                                            var imageArray = imageUrls.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                            <button type="button" class="btn btn-sm btn-outline-success btn-gallery-icon"
+                                                data-bs-toggle="modal" data-bs-target="#imageGalleryModal"
+                                                onclick="showImageGallery('@Html.Raw(string.Join("|", imageArray))', '@Html.Raw(itemName)')">
+                                                <i class="bi bi-images"></i> @imageArray.Length
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">-</span>
+                                        }
+                                    </td>
+                                }
+                                <td class="py-1 px-1 text-center total-existing-bg">@row[totalExistingCol]</td>
+                                <td class="py-1 px-1 text-center total-required-bg fw-bold">@row[totalRequiredCol]</td>
+                                <td class="py-1 px-1 text-start">@row[remarksCol]</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted mb-0">No survey item records found.</p>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Camera Installation Remarks Section (shown only if camera remarks exist) -->
+@if (ViewBag.HasCameraDevices == true)
+{
+    var cameraRemarks = ViewBag.CameraRemarks as Dictionary<string, List<SurveyApp.Models.SurveyCamRemarksModel>>;
+    var cameraItemNames = ViewBag.CameraItemNames as Dictionary<int, string>;
+    if (cameraRemarks != null && cameraRemarks.Any())
+    {
+        <div class="card mb-3">
+            <div class="card-header py-2">
+                <strong><i class="bi bi-camera-video-fill me-2"></i>Camera Installation Remarks</strong>
+            </div>
+            <div class="card-body table-responsive small">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="py-1 px-2 fw-semibold text-center bg-primary text-white">Location</th>
+                            <th class="py-1 px-2 fw-semibold text-center bg-info text-white">Camera Type</th>
+                            <th class="py-1 px-2 fw-semibold text-center bg-success text-white">Cam #</th>
+                            <th class="py-1 px-2 fw-semibold text-center bg-warning">Installation Direction / Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var locationRemarks in cameraRemarks)
+                        {
+                            // Parse surveyId_locId
+                            var keyParts = locationRemarks.Key.Split('_');
+                            var locId = int.Parse(keyParts[1]);
+
+                            // Find location name
+                            string locName = "Unknown Location";
+                            if (dtLocEmp?.Rows != null)
+                            {
+                                foreach (DataRow locRow in dtLocEmp.Rows)
+                                {
+                                    if (Convert.ToInt32(locRow["LocID"]) == locId)
+                                    {
+                                        locName = locRow["LocName"]?.ToString() ?? "Unknown Location";
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Group remarks by ItemID for this location
+                            var remarksByItem = locationRemarks.Value.GroupBy(r => r.ItemID).ToList();
+                            int locationRowSpan = locationRemarks.Value.Count;
+                            bool isFirstLocationRow = true;
+
+                            foreach (var itemGroup in remarksByItem)
+                            {
+                                int itemRowSpan = itemGroup.Count();
+                                bool isFirstItemRow = true;
+                                string itemName = cameraItemNames != null && cameraItemNames.ContainsKey(itemGroup.Key)
+                                ? cameraItemNames[itemGroup.Key]
+                                : $"Camera #{itemGroup.Key}";
+                                int camNum = 1;
+
+                                foreach (var remark in itemGroup)
+                                {
+                                    <tr>
+                                        @if (isFirstLocationRow)
+                                        {
+                                            <td class="py-1 px-2 align-middle text-center fw-bold" rowspan="@locationRowSpan">
+                                                <i class="bi bi-geo-alt-fill text-danger me-1"></i>@locName
+                                            </td>
+                                            isFirstLocationRow = false;
+                                        }
+                                        @if (isFirstItemRow)
+                                        {
+                                            <td class="py-1 px-2 align-middle text-center" rowspan="@itemRowSpan">
+                                                <i class="bi bi-camera-fill text-info me-1"></i>@itemName
+                                            </td>
+                                            isFirstItemRow = false;
+                                        }
+                                        <td class="py-1 px-1 text-center">
+                                            <span class="badge bg-secondary">#Cam@(camNum++)</span>
+                                        </td>
+                                        <td class="py-1 px-1 text-start">
+                                            <i class="bi bi-arrow-right-circle text-success me-1"></i>
+                                            @(string.IsNullOrEmpty(remark.Remarks) ? "No remarks provided" : remark.Remarks)
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+<!-- Image Gallery Modal -->
+<div class="modal fade" id="imageGalleryModal" tabindex="-1" aria-labelledby="imageGalleryModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="modal-title text-white" id="imageGalleryModalLabel">
+                    <i class="bi bi-images me-2"></i>Item Images - <span id="galleryItemName"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Main Image Display -->
+                <div class="main-image-container position-relative">
+                    <button type="button" class="image-nav-btn prev" onclick="navigateGallery(-1)" title="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <img id="galleryMainImage" src="" alt="Main Image" class="main-image">
+                    <button type="button" class="image-nav-btn next" onclick="navigateGallery(1)" title="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="image-counter">
+                    <span id="currentImageIndex">1</span> of <span id="totalImages">1</span>
+                </div>
+                <!-- Thumbnail Gallery -->
+                <div class="image-gallery-container justify-content-center" id="thumbnailGallery">
+                    <!-- Thumbnails will be dynamically populated -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="downloadCurrentImage" class="btn btn-outline-primary" target="_blank">
+                    <i class="bi bi-download me-1"></i>Download Image
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let galleryImages = [];
+        let currentIndex = 0;
+
+        function showImageGallery(imageUrlsString, itemName) {
+            // Parse the pipe-separated image URLs
+            galleryImages = imageUrlsString.split('|').filter(url => url.trim() !== '');
+            currentIndex = 0;
+
+            // Set item name in modal header
+            document.getElementById('galleryItemName').textContent = itemName;
+
+            // Update counter
+            document.getElementById('totalImages').textContent = galleryImages.length;
+
+            // Generate thumbnails
+            const thumbnailContainer = document.getElementById('thumbnailGallery');
+            thumbnailContainer.innerHTML = '';
+
+            galleryImages.forEach((url, index) => {
+                const img = document.createElement('img');
+                img.src = url.trim();
+                img.alt = `Image ${index + 1}`;
+                img.className = 'gallery-thumbnail' + (index === 0 ? ' active' : '');
+                img.onclick = () => selectImage(index);
+                img.onerror = () => {
+                    img.src = '/img/no-image-placeholder.png'; // Fallback image
+                    img.alt = 'Image not available';
+                };
+                thumbnailContainer.appendChild(img);
+            });
+
+            // Show first image
+            selectImage(0);
+
+            // Show/hide navigation buttons based on image count
+            const prevBtn = document.querySelector('.image-nav-btn.prev');
+            const nextBtn = document.querySelector('.image-nav-btn.next');
+            if (galleryImages.length <= 1) {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+            } else {
+                prevBtn.style.display = 'block';
+                nextBtn.style.display = 'block';
+            }
+        }
+
+        function selectImage(index) {
+            if (index < 0 || index >= galleryImages.length) return;
+
+            currentIndex = index;
+            const mainImage = document.getElementById('galleryMainImage');
+            mainImage.src = galleryImages[index].trim();
+
+            // Update counter
+            document.getElementById('currentImageIndex').textContent = index + 1;
+
+            // Update download link
+            document.getElementById('downloadCurrentImage').href = galleryImages[index].trim();
+
+            // Update active thumbnail
+            const thumbnails = document.querySelectorAll('.gallery-thumbnail');
+            thumbnails.forEach((thumb, i) => {
+                thumb.classList.toggle('active', i === index);
+            });
+
+            // Scroll thumbnail into view
+            if (thumbnails[index]) {
+                thumbnails[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        function navigateGallery(direction) {
+            let newIndex = currentIndex + direction;
+
+            // Loop around
+            if (newIndex < 0) newIndex = galleryImages.length - 1;
+            if (newIndex >= galleryImages.length) newIndex = 0;
+
+            selectImage(newIndex);
+        }
+
+        // Keyboard navigation when modal is open
+        document.getElementById('imageGalleryModal').addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowLeft') {
+                navigateGallery(-1);
+            } else if (e.key === 'ArrowRight') {
+                navigateGallery(1);
+            }
+        });
+    </script>
+}
