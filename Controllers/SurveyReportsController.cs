@@ -1048,7 +1048,7 @@ namespace SurveyApp.Controllers
                         ws.Cells[row3, totalEndCol].Value = "Required";
 
                         // Remarks header
-                        ws.Cells[row1, remarksCol].Value = "Remarks";
+                        ws.Cells[row1, remarksCol].Value = "Specification / Remarks";
                         ws.Cells[row1, remarksCol, row3, remarksCol].Merge = true;
 
                         // style header block
